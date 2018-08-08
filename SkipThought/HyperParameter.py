@@ -10,7 +10,7 @@ class HyperParameter(object):
     def __init__(self):
         # 超参数
         self.rnn_size = 256
-        self.num_layers = 2
+        self.num_layers = 4
         self.embedding_size = 256
         self.batch_size = 32
         self.learning_rate = 0.001
