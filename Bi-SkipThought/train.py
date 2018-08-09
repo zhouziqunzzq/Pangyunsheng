@@ -28,6 +28,7 @@ if __name__ == '__main__':
     teacher_forcing = hp.teacher_forcing
     teacher_forcing_probability = hp.teacher_forcing_probability
     max_to_keep = hp.max_to_keep
+    max_save_loss = hp.max_save_loss
     writer = None
 
     # 得到分词后的data
@@ -83,8 +84,10 @@ if __name__ == '__main__':
                 else:
                     sys.stdout.write('.')
                     sys.stdout.flush()
-                # Only save the best model
-                if (loss_pre + loss_post) < best_loss and steps % steps_per_checkpoint == 0:
+                # Only save the best model & prevent saving bad model
+                if loss_pre < max_save_loss and loss_post < max_save_loss \
+                        and (loss_pre + loss_post) < best_loss \
+                        and steps % steps_per_checkpoint == 0:
                     best_loss = (loss_pre + loss_post)
                     model.saver.save(
                         sess,

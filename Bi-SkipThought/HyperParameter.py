@@ -26,6 +26,7 @@ class HyperParameter(object):
         self.model_dir = 'model/'
         self.steps_per_checkpoint = 20
         self.max_to_keep = 3
+        self.max_save_loss = 6.0
 
         # Other
         self.print_loss_steps = 20
