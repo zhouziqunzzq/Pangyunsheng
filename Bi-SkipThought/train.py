@@ -79,7 +79,7 @@ if __name__ == '__main__':
                 steps = steps + 1
                 if steps % print_loss_steps == 0:
                     print("----- Loss_pre %.2f -----Loss_post %.2f----- Perplexity %.2f" % (
-                    loss_pre, loss_post, perplexity))
+                        loss_pre, loss_post, perplexity))
                 else:
                     sys.stdout.write('.')
                     sys.stdout.flush()

@@ -28,5 +28,5 @@ class HyperParameter(object):
         self.max_to_keep = 3
 
         # Other
-        self.print_loss_steps = 10
+        self.print_loss_steps = 20
         self.beam_size = 3

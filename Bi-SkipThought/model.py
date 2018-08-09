@@ -61,7 +61,8 @@ class SkipThoughtModel(object):
         self.decoder_predict_decode_post = None
 
         # Ops
-        self.train_op = None
+        self.train_op_pre = None
+        self.train_op_post = None
         self.summary_op = None
         self.loss_pre = None
         self.loss_post = None
@@ -166,9 +167,8 @@ class SkipThoughtModel(object):
                 :return: merged state
                 """
                 layer_state_c, layer_state_h = tf.unstack(layer_states, axis=0)
+                layer_state_merged_c = _apply_state_merge_step(layer_state_c)
                 layer_state_merged_h = _apply_state_merge_step(layer_state_h)
-                # 将 Decoder 的初始 cell memory 置为0
-                layer_state_merged_c = tf.zeros_like(layer_state_merged_h)
                 state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_merged_c, layer_state_merged_h)
                 return state_merged
 
@@ -189,7 +189,7 @@ class SkipThoughtModel(object):
             if self.mode == 'train':
                 self.build_train_decoder_pre()
                 self.build_train_decoder_post()
-                self.build_optimizer(self.loss_pre + self.loss_post)
+                self.build_optimizer(self.loss_pre, self.loss_post)
             elif self.mode == 'predict':
                 self.build_predict_decoder_pre()
                 self.build_predict_decoder_post()
@@ -382,15 +382,20 @@ class SkipThoughtModel(object):
         cell_bw = [self._single_rnn_cell() for _ in range(self.num_layers)]
         return cell_fw, cell_bw
 
-    def build_optimizer(self, loss):
+    def build_optimizer(self, loss_pre, loss_post):
         print('Building optimizer...')
 
         # optimizer
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
         trainable_params = tf.trainable_variables()
-        gradients = tf.gradients(loss, trainable_params)
-        clip_gradients, _ = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
-        self.train_op = optimizer.apply_gradients(zip(clip_gradients, trainable_params))
+        # apply loss pre
+        gradients_pre = tf.gradients(loss_pre, trainable_params)
+        clip_gradients_pre, _ = tf.clip_by_global_norm(gradients_pre, self.max_gradient_norm)
+        self.train_op_pre = optimizer.apply_gradients(zip(clip_gradients_pre, trainable_params))
+        # apply loss post
+        gradients_post = tf.gradients(loss_post, trainable_params)
+        clip_gradients_post, _ = tf.clip_by_global_norm(gradients_post, self.max_gradient_norm)
+        self.train_op_post = optimizer.apply_gradients(zip(clip_gradients_post, trainable_params))
 
     def train(self, batch):
         feed_dict = {
@@ -403,7 +408,10 @@ class SkipThoughtModel(object):
             self.batch_size: len(batch.encoder_inputs),
             self.keep_prob: 0.5
         }
-        _, loss_pre, loss_post = self.sess.run([self.train_op, self.loss_pre, self.loss_post], feed_dict=feed_dict)
+        _, _, loss_pre, loss_post = self.sess.run(
+            [self.train_op_pre, self.train_op_post, self.loss_pre, self.loss_post],
+            feed_dict=feed_dict
+        )
         return loss_pre, loss_post
 
     def eval(self, batch):
