@@ -10,7 +10,7 @@ from tensorflow.contrib.seq2seq import BasicDecoder, dynamic_decode
 from tensorflow.contrib.seq2seq import BeamSearchDecoder
 from tensorflow.contrib.seq2seq import tile_batch
 from tensorflow.contrib.rnn import DropoutWrapper, MultiRNNCell
-from tensorflow.contrib.rnn import LSTMCell, GRUCell
+from tensorflow.contrib.rnn import LSTMCell
 
 
 class Seq2SeqModel(object):

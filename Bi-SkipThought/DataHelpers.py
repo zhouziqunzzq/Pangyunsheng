@@ -72,10 +72,10 @@ def create_batch(sources, targets_pre, targets_post):
     max_target_post_length = max(batch.decoder_targets_post_length)
 
     for source in sources:
-        # 将source进行反序并PAD
-        source = list(reversed(source))
+        # 因为Encoder采用了双向RNN，此处不进行反向，只进行PAD
+        # source = list(reversed(source))
         pad = [padToken] * (max_source_length - len(source))
-        batch.encoder_inputs.append(pad + source)
+        batch.encoder_inputs.append(source + pad)
 
     for target_pre in targets_pre:
         # 将target进行PAD，并添加EOS符号

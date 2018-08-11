@@ -33,8 +33,10 @@ if __name__ == '__main__':
 
     # 得到分词后的data
     data = load_and_cut_data(data_txt)
-
     data, word_to_id, _ = create_dic_and_map(data)
+
+    # Create batch
+    batches = get_batches(data, batch_size)
 
     # Train
     with tf.Session() as sess:
@@ -73,7 +75,6 @@ if __name__ == '__main__':
         best_loss = 100000.0
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
-            batches = get_batches(data, batch_size)
             steps = 0
             for nextBatch in batches:
                 loss_pre, loss_post = model.train(nextBatch)

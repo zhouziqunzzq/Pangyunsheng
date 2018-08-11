@@ -39,6 +39,7 @@ if __name__ == '__main__':
     data_txt = hp.data_txt
     model_dir = hp.model_dir
     beam_size = hp.beam_size
+    encoder_state_merge_method = hp.encoder_state_merge_method
     writer = None
 
     # 得到分词后的sources和targets
@@ -59,6 +60,7 @@ if __name__ == '__main__':
             use_attention=True,
             beam_search=True,
             beam_size=beam_size,
+            encoder_state_merge_method=encoder_state_merge_method,
             max_gradient_norm=5.0,
             writer=writer,
         )
