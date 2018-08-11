@@ -17,6 +17,7 @@ class Seq2SeqModel(object):
     def __init__(self, sess, rnn_size, num_layers, embedding_size, word_to_id,
                  mode, use_attention, learning_rate=0.01, max_to_keep=5,
                  beam_search=False, beam_size=5,
+                 encoder_state_merge_method="mean",
                  max_gradient_norm=5, teacher_forcing=False, teacher_forcing_probability=0.5):
         self.sess = sess
         self.learning_rate = learning_rate
@@ -43,6 +44,7 @@ class Seq2SeqModel(object):
         self.encoder_state_merge_layers = None
         self.encoder_inputs = None
         self.encoder_inputs_length = None
+        self.encoder_state_merge_method = encoder_state_merge_method
 
         # Decoder
         self.decoder_cell = None
@@ -123,11 +125,11 @@ class Seq2SeqModel(object):
             # encoder_state_merge_layers是个list，长度为num_layers * num_hidden_states
             self.encoder_state_merge_layers = []
 
-            def _apply_state_merge_step(layer_state):
+            def _apply_state_merge_step_dense(layer_state):
                 """
                 Apply merge for one hidden state
                 :param layer_state: a tensor standing for one hidden state
-                    of shape(batch_size, rnn_size)
+                    of shape(batch_size, rnn_size x 2)
                 :return:
                 """
                 dense = _create_merge_dense_layer()
@@ -135,29 +137,54 @@ class Seq2SeqModel(object):
                 layer_state_merged = dense(layer_state)
                 return layer_state_merged
 
-            def _apply_state_merge(layer_states):
+            def _apply_state_merge_dense(layer_states):
                 """
                 Apply merge for hidden states in one layer
                 :param layer_states: a tensor standing for hidden states
-                    in one layer of shape(num_hidden_states, batch_size, rnn_size)
+                    in one layer of shape(num_hidden_states, batch_size, rnn_size x 2)
                 :return: merged state
                 """
                 layer_state_c, layer_state_h = tf.unstack(layer_states, axis=0)
-                layer_state_merged_h = _apply_state_merge_step(layer_state_h)
-                # 将 Decoder 的初始 cell memory 置为0
-                layer_state_merged_c = tf.zeros_like(layer_state_merged_h)
+                layer_state_merged_c = _apply_state_merge_step_dense(layer_state_c)
+                layer_state_merged_h = _apply_state_merge_step_dense(layer_state_h)
                 state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_merged_c, layer_state_merged_h)
                 return state_merged
 
-            # 将前向隐状态和后向隐状态合并
-            # encoder_state_concat is a tensor of shape(num_layers, num_hidden_states, batch_size, rnn_size)
-            # where num_hidden_states is 2 for LSTM
-            encoder_state_concat = tf.concat([self.encoder_state_fw, self.encoder_state_bw], axis=-1)
-            # 将合并后的tensor展开为list
-            # len(encoder_concat_unstacked) = num_layers
-            encoder_state_concat_unstacked = tf.unstack(encoder_state_concat, axis=0)
-            self.encoder_state = nest.map_structure(_apply_state_merge, encoder_state_concat_unstacked)
-            self.encoder_state = tuple(self.encoder_state)
+            def _apply_state_merge_mean(layer_states):
+                """
+                Apply merge for hidden states in one layer
+                :param layer_states: a tensor standing for hidden states
+                    in one layer of shape(num_hidden_states, batch_size, rnn_size, 2)
+                :return: merged state
+                """
+                layer_state_c, layer_state_h = tf.unstack(layer_states, axis=0)
+                layer_state_merged_c = tf.reduce_mean(layer_state_c, axis=-1)
+                layer_state_merged_h = tf.reduce_mean(layer_state_h, axis=-1)
+                state_merged = tf.contrib.rnn.LSTMStateTuple(layer_state_merged_c, layer_state_merged_h)
+                return state_merged
+
+            if self.encoder_state_merge_method == "dense":
+                print("Merging hidden states of Encoder with Dense layers...")
+                # 将前向隐状态和后向隐状态合并
+                # encoder_state_concat is a tensor of shape(num_layers, num_hidden_states, batch_size, rnn_size)
+                # where num_hidden_states is 2 for LSTM
+                encoder_state_concat = tf.concat([self.encoder_state_fw, self.encoder_state_bw], axis=-1)
+
+                # 将合并后的tensor展开为list
+                # len(encoder_concat_unstacked) = num_layers
+                encoder_state_concat_unstacked = tf.unstack(encoder_state_concat, axis=0)
+                self.encoder_state = nest.map_structure(_apply_state_merge_dense, encoder_state_concat_unstacked)
+                self.encoder_state = tuple(self.encoder_state)
+
+            elif self.encoder_state_merge_method == "mean":
+                print("Merging hidden states of Encoder with reduce_mean...")
+                encoder_state_stacked = tf.stack([self.encoder_state_fw, self.encoder_state_bw], axis=-1)
+                encoder_state_stacked_unstacked = tf.unstack(encoder_state_stacked, axis=0)
+                self.encoder_state = nest.map_structure(_apply_state_merge_mean, encoder_state_stacked_unstacked)
+                self.encoder_state = tuple(self.encoder_state)
+
+            else:
+                raise ValueError("Unrecognised encoder_state_merge_method (valid: dense / mean)")
 
     def build_decoder(self):
         print('Building decoder...')

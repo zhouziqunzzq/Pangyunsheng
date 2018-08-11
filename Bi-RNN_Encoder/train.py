@@ -26,6 +26,8 @@ if __name__ == '__main__':
     teacher_forcing = hp.teacher_forcing
     teacher_forcing_probability = hp.teacher_forcing_probability
     max_to_keep = hp.max_to_keep
+    max_save_loss = hp.max_save_loss
+    encoder_state_merge_method = hp.encoder_state_merge_method
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -33,6 +35,9 @@ if __name__ == '__main__':
 
     # 根据sources和targets创建词典，并映射
     sources_data, targets_data, word_to_id, _ = create_dic_and_map(sources, targets)
+
+    # Create batch
+    batches = get_batches(sources_data, targets_data, batch_size)
 
     # Train
     with tf.Session() as sess:
@@ -49,6 +54,7 @@ if __name__ == '__main__':
             use_attention=True,
             beam_search=False,
             beam_size=beam_size,
+            encoder_state_merge_method=encoder_state_merge_method,
             teacher_forcing=teacher_forcing,
             teacher_forcing_probability=teacher_forcing_probability,
             max_gradient_norm=5.0,
@@ -65,12 +71,11 @@ if __name__ == '__main__':
             print('No checkpoint found, training from scratch...')
             sess.run(tf.global_variables_initializer())
 
+        # Keep track of the minimum loss to save best model
+        best_loss = 100000.0
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
-            batches = get_batches(sources_data, targets_data, batch_size)
             steps = 0
-            # Keep track of the minimum loss to save best model
-            best_loss = 100000.0
             for nextBatch in batches:
                 loss, summary = model.train(nextBatch)
                 perplexity = math.exp(float(loss)) if loss < 300 else float('inf')
@@ -81,7 +86,9 @@ if __name__ == '__main__':
                     sys.stdout.write('.')
                     sys.stdout.flush()
                 # Only save the best model
-                if loss < best_loss and steps % steps_per_checkpoint == 0:
+                if loss < max_save_loss \
+                        and loss < best_loss \
+                        and steps % steps_per_checkpoint == 0:
                     best_loss = loss
                     model.saver.save(
                         sess, model_dir + 'seq2seq_epoch{}_step{}_loss{:.2f}.ckpt'.format(e, steps, loss)

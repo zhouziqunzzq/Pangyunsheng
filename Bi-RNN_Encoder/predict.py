@@ -40,6 +40,7 @@ if __name__ == '__main__':
     targets_txt = hp.targets_txt
     model_dir = hp.model_dir
     beam_size = hp.beam_size
+    encoder_state_merge_method = hp.encoder_state_merge_method
 
     # 得到分词后的sources和targets
     sources = load_and_cut_data(sources_txt)
@@ -60,6 +61,7 @@ if __name__ == '__main__':
             use_attention=True,
             beam_search=True,
             beam_size=beam_size,
+            encoder_state_merge_method=encoder_state_merge_method,
             max_gradient_norm=5.0
         )
         ckpt = tf.train.get_checkpoint_state(model_dir)
