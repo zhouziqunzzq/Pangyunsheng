@@ -2,12 +2,13 @@
 #  _*_ coding:utf-8 _*_
 
 import tensorflow as tf
-from SkipThought.DataHelpers import *
-from SkipThought.model import SkipThoughtModel
-from SkipThought.HyperParameter import HyperParameter
+from DataHelpers import *
+from model import SkipThoughtModel
+from HyperParameter import HyperParameter
 import math
 import sys
 import os
+
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 if __name__ == '__main__':
@@ -27,6 +28,7 @@ if __name__ == '__main__':
     teacher_forcing = hp.teacher_forcing
     teacher_forcing_probability = hp.teacher_forcing_probability
     max_to_keep = hp.max_to_keep
+    max_save_loss = hp.max_save_loss
     writer = None
 
     # 得到分词后的data
@@ -67,25 +69,29 @@ if __name__ == '__main__':
             print('No checkpoint found, training from scratch...')
             sess.run(tf.global_variables_initializer())
 
+        # Keep track of the minimum loss to save best model
+        best_loss = 100000.0
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
             batches = get_batches(data, batch_size)
             steps = 0
-            # Keep track of the minimum loss to save best model
-            best_loss = 100000.0
             for nextBatch in batches:
                 loss_pre, loss_post = model.train(nextBatch)
                 perplexity = math.exp(float(loss_pre + loss_post)) if (loss_pre + loss_post) < 300 else float('inf')
                 steps = steps + 1
                 if steps % print_loss_steps == 0:
-                    print("----- Loss_pre %.2f -----Loss_post %.2f----- Perplexity %.2f" % (loss_pre, loss_post, perplexity))
+                    print("----- Loss_pre %.2f -----Loss_post %.2f----- Perplexity %.2f" % (
+                        loss_pre, loss_post, perplexity))
                 else:
                     sys.stdout.write('.')
                     sys.stdout.flush()
                 # Only save the best model
-                if (loss_pre + loss_post) < best_loss and steps % steps_per_checkpoint == 0:
+                if loss_pre < max_save_loss and loss_post < max_save_loss \
+                        and (loss_pre + loss_post) < best_loss \
+                        and steps % steps_per_checkpoint == 0:
                     best_loss = (loss_pre + loss_post)
                     model.saver.save(
-                        sess, model_dir + 'seq2seq_epoch{}_step{}_loss{:.2f}.ckpt'.format(e, steps, (loss_pre + loss_post))
+                        sess,
+                        model_dir + 'seq2seq_epoch{}_step{}_loss{:.2f}.ckpt'.format(e, steps, (loss_pre + loss_post))
                     )
             print()

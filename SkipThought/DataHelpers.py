@@ -2,7 +2,7 @@
 #  _*_ coding:utf-8 _*_
 
 import jieba
-from SkipThought.HyperParameter import HyperParameter
+from HyperParameter import HyperParameter
 
 padToken, unknownToken, goToken, eosToken = 0, 1, 2, 3
 
@@ -96,10 +96,10 @@ def get_batches(data, batch_size):
     data_len = len(data)
 
     def gen_next_samples():
-        for i in range(data_len //batch_size + 1):
-            yield data[(i*batch_size+1):min((i*batch_size+1) + batch_size, data_len-1)], \
-                  data[(i*batch_size):min((i*batch_size) + batch_size, data_len-2)], \
-                  data[(i*batch_size+2):min((i*batch_size+2) + batch_size, data_len)]
+        for i in range(data_len // batch_size + 1):
+            yield data[(i * batch_size + 1):min((i * batch_size + 1) + batch_size, data_len - 1)], \
+                  data[(i * batch_size):min((i * batch_size) + batch_size, data_len - 2)], \
+                  data[(i * batch_size + 2):min((i * batch_size + 2) + batch_size, data_len)]
 
     batches = []
     for sources, targets_pre, targets_post in gen_next_samples():

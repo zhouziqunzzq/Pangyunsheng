@@ -16,7 +16,8 @@ from tensorflow.contrib.seq2seq import tile_batch
 
 class SkipThoughtModel(object):
     def __init__(self, sess, rnn_size, num_layers, embedding_size, word_to_id, mode, use_attention, writer,
-                 learning_rate=0.01, max_to_keep=5, beam_search=False, beam_size=5, cell_type='LSTM', max_gradient_norm=5,
+                 learning_rate=0.01, max_to_keep=5, beam_search=False, beam_size=5, cell_type='LSTM',
+                 max_gradient_norm=5,
                  teacher_forcing=False, teacher_forcing_probability=0.5):
 
         self.sess = sess
@@ -69,7 +70,8 @@ class SkipThoughtModel(object):
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob')
 
         self.max_target_pre_sequence_length = tf.reduce_max(self.decoder_targets_pre_length, name='max_target_pre_len')
-        self.max_target_post_sequence_length = tf.reduce_max(self.decoder_targets_post_length, name='max_target_post_len')
+        self.max_target_post_sequence_length = tf.reduce_max(self.decoder_targets_post_length,
+                                                             name='max_target_post_len')
         self.mask_pre = tf.sequence_mask(
             self.decoder_targets_pre_length,
             self.max_target_pre_sequence_length,
@@ -281,6 +283,7 @@ class SkipThoughtModel(object):
             single_cell = GRUCell(self.rnn_size) if self.cell_type == 'GRU' else LSTMCell(self.rnn_size)
             basic_cell = DropoutWrapper(single_cell, output_keep_prob=self.keep_prob)
             return basic_cell
+
         cell = MultiRNNCell([single_rnn_cell() for _ in range(self.num_layers)])
         return cell
 

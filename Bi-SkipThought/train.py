@@ -68,12 +68,12 @@ if __name__ == '__main__':
             print('No checkpoint found, training from scratch...')
             sess.run(tf.global_variables_initializer())
 
+        # Keep track of the minimum loss to save best model
+        best_loss = 100000.0
         for e in range(epochs):
             print("----- Epoch {}/{} -----".format(e + 1, epochs))
             batches = get_batches(data, batch_size)
             steps = 0
-            # Keep track of the minimum loss to save best model
-            best_loss = 100000.0
             for nextBatch in batches:
                 loss_pre, loss_post = model.train(nextBatch)
                 perplexity = math.exp(float(loss_pre + loss_post)) if (loss_pre + loss_post) < 300 else float('inf')

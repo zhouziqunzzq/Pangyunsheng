@@ -4,9 +4,9 @@
 import tensorflow as tf
 import numpy as np
 
-from SkipThought.DataHelpers import *
-from SkipThought.model import SkipThoughtModel
-from SkipThought.HyperParameter import HyperParameter
+from DataHelpers import *
+from model import SkipThoughtModel
+from HyperParameter import HyperParameter
 import sys
 
 
