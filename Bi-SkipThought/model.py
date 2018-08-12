@@ -65,9 +65,11 @@ class SkipThoughtModel(object):
         self.decoder_predict_decode_post = None
 
         # Ops
+        self.train_op = None
         self.train_op_pre = None
         self.train_op_post = None
         self.summary_op = None
+        self.loss = None
         self.loss_pre = None
         self.loss_post = None
 
@@ -418,14 +420,24 @@ class SkipThoughtModel(object):
         # optimizer
         optimizer = tf.train.AdamOptimizer(self.learning_rate)
         trainable_params = tf.trainable_variables()
+
+        # calculate total loss
+        self.loss = loss_pre + loss_post
+
         # apply loss pre
-        gradients_pre = tf.gradients(loss_pre, trainable_params)
-        clip_gradients_pre, _ = tf.clip_by_global_norm(gradients_pre, self.max_gradient_norm)
-        self.train_op_pre = optimizer.apply_gradients(zip(clip_gradients_pre, trainable_params))
+        # gradients_pre = tf.gradients(loss_pre, trainable_params)
+        # clip_gradients_pre, _ = tf.clip_by_global_norm(gradients_pre, self.max_gradient_norm)
+        # self.train_op_pre = optimizer.apply_gradients(zip(clip_gradients_pre, trainable_params))
+
         # apply loss post
-        gradients_post = tf.gradients(loss_post, trainable_params)
-        clip_gradients_post, _ = tf.clip_by_global_norm(gradients_post, self.max_gradient_norm)
-        self.train_op_post = optimizer.apply_gradients(zip(clip_gradients_post, trainable_params))
+        # gradients_post = tf.gradients(loss_post, trainable_params)
+        # clip_gradients_post, _ = tf.clip_by_global_norm(gradients_post, self.max_gradient_norm)
+        # self.train_op_post = optimizer.apply_gradients(zip(clip_gradients_post, trainable_params))
+
+        # apply loss gradients
+        gradients = tf.gradients(self.loss, trainable_params)
+        clip_gradients, _ = tf.clip_by_global_norm(gradients, self.max_gradient_norm)
+        self.train_op = optimizer.apply_gradients(zip(clip_gradients, trainable_params))
 
     def train(self, batch):
         feed_dict = {
@@ -438,8 +450,14 @@ class SkipThoughtModel(object):
             self.batch_size: len(batch.encoder_inputs),
             self.keep_prob: 0.5
         }
-        _, _, loss_pre, loss_post = self.sess.run(
-            [self.train_op_pre, self.train_op_post, self.loss_pre, self.loss_post],
+        # _, _, loss_pre, loss_post = self.sess.run(
+        #     [self.train_op_pre, self.train_op_post, self.loss_pre, self.loss_post],
+        #     feed_dict=feed_dict
+        # )
+        # return loss_pre, loss_post
+
+        _, loss_pre, loss_post = self.sess.run(
+            [self.train_op, self.loss_pre, self.loss_post],
             feed_dict=feed_dict
         )
         return loss_pre, loss_post
