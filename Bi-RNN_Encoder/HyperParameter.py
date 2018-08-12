@@ -13,15 +13,15 @@ class HyperParameter(object):
         self.num_layers = 2
         self.embedding_size = 256
         self.batch_size = 32
-        self.learning_rate = 0.001
-        self.epochs = 2000
+        self.learning_rate = 0.01
+        self.epochs = 200
         self.teacher_forcing = False
         self.teacher_forcing_probability = 0.5
         self.encoder_state_merge_method = "mean"  # "mean" for reduce_mean and "dense" for Dense
 
         # Data filepath
-        self.sources_txt = 'data/sources.txt'
-        self.targets_txt = 'data/targets.txt'
+        self.sources_txt = 'data/sources_full.txt'
+        self.targets_txt = 'data/targets_full.txt'
         self.dictionary_txt = 'data/dictionary.txt'
 
         # Saver config
